@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beat training photos</title>
+<style>
+  :root {
+    --ink: #1b1b1f;
+    --muted: #62626b;
+    --line: #dcdce2;
+    --paper: #ffffff;
+    --ground: #f2f2f5;
+    --red: #d6001c;
+    --red-dark: #a80016;
+    --ok: #1e7a3c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--ground);
+    padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+    line-height: 1.45;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.35rem; margin: 4px 0 2px; }
+  .sub { color: var(--muted); margin: 0 0 14px; font-size: .95rem; }
+
+  .checks { display: flex; gap: 8px; margin-bottom: 12px; }
+  .chip {
+    flex: 1; padding: 8px 10px; border-radius: 8px; background: var(--paper);
+    border: 1px solid var(--line); font-size: .85rem; display: flex; gap: 8px; align-items: center;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #b9b9c2; flex: none; }
+  .chip.ok .dot { background: var(--ok); }
+  .chip.bad .dot { background: var(--red); }
+
+  .viewfinder {
+    position: relative; background: #000; border-radius: 12px; overflow: hidden;
+    aspect-ratio: 4 / 3; width: 100%;
+  }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .vf-msg {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: 20px; text-align: center; color: #fff; font-size: .95rem;
+  }
+  .hidden { display: none !important; }
+
+  button {
+    font: inherit; border: 0; border-radius: 10px; padding: 14px 16px; min-height: 52px;
+    cursor: pointer; width: 100%;
+  }
+  button:focus-visible { outline: 3px solid #1a5fff; outline-offset: 2px; }
+  .primary { background: var(--red); color: #fff; font-weight: 600; }
+  .primary:active { background: var(--red-dark); }
+  .primary:disabled { background: #c9c9d1; color: #fff; cursor: not-allowed; }
+  .secondary { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+  .stack { display: grid; gap: 10px; margin-top: 12px; }
+
+  .count { margin: 16px 0 8px; font-weight: 600; }
+  .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .thumb { position: relative; border-radius: 10px; overflow: hidden; background: #000; }
+  .thumb img { width: 100%; display: block; }
+  .thumb button {
+    position: absolute; top: 6px; right: 6px; width: auto; min-height: 36px; padding: 6px 12px;
+    background: rgba(255,255,255,.95); font-size: .85rem;
+  }
+
+  .notice { background: #fff4f5; border: 1px solid #f3b6bd; border-radius: 10px; padding: 12px; font-size: .9rem; margin-top: 12px; }
+
+  .done { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 20px; text-align: center; }
+  .code {
+    font-family: Consolas, "Courier New", monospace; font-size: 2rem; font-weight: 700;
+    letter-spacing: .04em; margin: 10px 0 14px; word-break: break-all;
+  }
+  .small { color: var(--muted); font-size: .88rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Beat training photos</h1>
+  <p class="sub">Camera se abhi photo click karein. Gallery se photo upload nahi hoti.</p>
+
+  <section id="capture">
+    <div class="checks">
+      <div class="chip" id="chipCam"><span class="dot"></span><span>Camera</span></div>
+      <div class="chip" id="chipLoc"><span class="dot"></span><span id="locText">Location</span></div>
+    </div>
+
+    <div class="viewfinder">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="vf-msg" id="vfMsg">Camera aur location ki permission "Allow" karein.</div>
+    </div>
+
+    <div class="stack">
+      <button class="primary" id="snapBtn" disabled>Photo click karein</button>
+    </div>
+
+    <div class="count" id="countLine">Photos: 0 / 4</div>
+    <div class="thumbs" id="thumbs"></div>
+
+    <div class="notice hidden" id="errBox"></div>
+
+    <div class="stack">
+      <button class="primary" id="sendBtn" disabled>Photos upload karein</button>
+    </div>
+  </section>
+
+  <section id="finished" class="hidden">
+    <div class="done">
+      <div><strong>Photos upload ho gayi</strong></div>
+      <div class="small">Ye code Google Form ke "Photo Code" box me paste karein.</div>
+      <div class="code" id="codeText"></div>
+      <button class="primary" id="copyBtn">Code copy karein</button>
+      <p class="small" id="copyNote"></p>
+      <p class="small">Form submit hone tak ye page band na karein.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  // ====== SETUP: in 2 values ko apne hisaab se badlo ======
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbw3-0t2TVpUElBa2W8mLlPZmD5FdMjUkWipENcKkF70Y6UA0zU-uRpRSne9oNhN-8HN/exec";   // Apps Script web app ka /exec URL
+  const SECRET   = "imc-beat-7391-xk";          // PhotoEndpoint.gs wale SECRET se same hona chahiye
+  // =========================================================
+
+  const MAX_PHOTOS = 4;
+  const MAX_SIDE = 1280;
+
+  const video = document.getElementById("video");
+  const vfMsg = document.getElementById("vfMsg");
+  const snapBtn = document.getElementById("snapBtn");
+  const sendBtn = document.getElementById("sendBtn");
+  const thumbs = document.getElementById("thumbs");
+  const countLine = document.getElementById("countLine");
+  const errBox = document.getElementById("errBox");
+  const chipCam = document.getElementById("chipCam");
+  const chipLoc = document.getElementById("chipLoc");
+  const locText = document.getElementById("locText");
+
+  let stream = null;
+  let pos = null;            // latest {lat, lng, acc}
+  let photos = [];           // {data, time, lat, lng, acc}
+  let uploading = false;
+
+  function showError(msg) {
+    errBox.textContent = msg;
+    errBox.classList.remove("hidden");
+  }
+  function clearError() { errBox.classList.add("hidden"); }
+
+  function refreshState() {
+    const ready = !!stream && !!pos;
+    snapBtn.disabled = !ready || photos.length >= MAX_PHOTOS || uploading;
+    sendBtn.disabled = photos.length < 1 || uploading;
+    countLine.textContent = "Photos: " + photos.length + " / " + MAX_PHOTOS;
+    if (ready) vfMsg.classList.add("hidden");
+  }
+
+  async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      vfMsg.textContent = "Ye browser camera support nahi karta. Chrome ya Safari me page kholein.";
+      chipCam.classList.add("bad");
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      chipCam.classList.add("ok");
+    } catch (e) {
+      chipCam.classList.add("bad");
+      vfMsg.textContent = "Camera permission nahi mili. Browser settings me Camera ko Allow karke page reload karein.";
+    }
+    refreshState();
+  }
+
+  function startLocation() {
+    if (!navigator.geolocation) {
+      chipLoc.classList.add("bad");
+      locText.textContent = "Location nahi";
+      return;
+    }
+    navigator.geolocation.watchPosition(
+      p => {
+        pos = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
+        chipLoc.classList.remove("bad");
+        chipLoc.classList.add("ok");
+        locText.textContent = "Location ±" + pos.acc + " m";
+        refreshState();
+      },
+      err => {
+        chipLoc.classList.add("bad");
+        locText.textContent = "Location band";
+        if (!pos) vfMsg.textContent = "Location permission nahi mili. Browser settings me Location ko Allow karke page reload karein.";
+        refreshState();
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+  }
+
+  function stampText(d) {
+    const date = d.toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
+    });
+    return [date, "Lat " + pos.lat.toFixed(6) + "  Lng " + pos.lng.toFixed(6) + "  (±" + pos.acc + " m)"];
+  }
+
+  function capture() {
+    clearError();
+    if (!stream || !pos || photos.length >= MAX_PHOTOS) return;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) { showError("Camera abhi ready nahi hai. Ek second ruk kar dobara try karein."); return; }
+
+    const scale = Math.min(1, MAX_SIDE / Math.max(vw, vh));
+    const w = Math.round(vw * scale), h = Math.round(vh * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, w, h);
+
+    const now = new Date();
+    const lines = stampText(now);
+    const fs = Math.max(14, Math.round(w * 0.028));
+    const pad = Math.round(fs * 0.6);
+    const bandH = fs * 2 + pad * 3;
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, h - bandH, w, bandH);
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 " + fs + "px Arial, sans-serif";
+    ctx.textBaseline = "top";
+    ctx.fillText(lines[0], pad, h - bandH + pad);
+    ctx.fillText(lines[1], pad, h - bandH + pad * 2 + fs);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    photos.push({
+      data: dataUrl.split(",")[1],
+      preview: dataUrl,
+      time: now.toISOString(),
+      lat: pos.lat, lng: pos.lng, acc: pos.acc
+    });
+    renderThumbs();
+    refreshState();
+  }
+
+  function renderThumbs() {
+    thumbs.innerHTML = "";
+    photos.forEach((p, i) => {
+      const box = document.createElement("div");
+      box.className = "thumb";
+      const img = document.createElement("img");
+      img.src = p.preview;
+      img.alt = "Photo " + (i + 1);
+      const del = document.createElement("button");
+      del.className = "secondary";
+      del.textContent = "Hatayein";
+      del.onclick = () => { if (uploading) return; photos.splice(i, 1); renderThumbs(); refreshState(); };
+      box.appendChild(img); box.appendChild(del);
+      thumbs.appendChild(box);
+    });
+  }
+
+  async function upload() {
+    if (uploading || photos.length < 1) return;
+    clearError();
+    uploading = true;
+    sendBtn.textContent = "Upload ho raha hai...";
+    refreshState();
+    try {
+      const payload = {
+        secret: SECRET,
+        photos: photos.map(p => ({ data: p.data, time: p.time, lat: p.lat, lng: p.lng, acc: p.acc }))
+      };
+      // Content-Type nahi dete, taaki browser preflight (CORS) na kare
+      const res = await fetch(ENDPOINT, { method: "POST", body: JSON.stringify(payload) });
+      const out = await res.json();
+      if (!out.ok) throw new Error(out.error || "Upload fail");
+      showDone(out.code);
+    } catch (e) {
+      showError("Upload nahi hua. Internet check karke dobara 'Photos upload karein' dabayein. (" + e.message + ")");
+      sendBtn.textContent = "Photos upload karein";
+    } finally {
+      uploading = false;
+      refreshState();
+    }
+  }
+
+  function showDone(code) {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    document.getElementById("capture").classList.add("hidden");
+    document.getElementById("finished").classList.remove("hidden");
+    document.getElementById("codeText").textContent = code;
+    document.getElementById("copyBtn").onclick = async () => {
+      const note = document.getElementById("copyNote");
+      try {
+        await navigator.clipboard.writeText(code);
+        note.textContent = "Code copy ho gaya.";
+      } catch (e) {
+        note.textContent = "Copy nahi hua. Code ko dabakar rakhein aur manually copy karein.";
+      }
+    };
+  }
+
+  snapBtn.addEventListener("click", capture);
+  sendBtn.addEventListener("click", upload);
+
+  startLocation();
+  startCamera();
+  refreshState();
+</script>
+</body>
+</html>
