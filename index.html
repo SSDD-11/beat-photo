@@ -81,7 +81,7 @@
 <body>
 <main>
   <h1>Beat training photos</h1>
-  <p class="sub">Camera se abhi photo click karein. Gallery se photo upload nahi hoti.</p>
+  <p class="sub">Camera se abhi Click Photo. Gallery se photo upload nahi hoti.</p>
 
   <section id="capture">
     <div class="checks">
@@ -95,7 +95,7 @@
     </div>
 
     <div class="stack">
-      <button class="primary" id="snapBtn" disabled>Photo click karein</button>
+      <button class="primary" id="snapBtn" disabled>Click Photo</button>
     </div>
 
     <div class="count" id="countLine">Photos: 0 / 4</div>
@@ -104,7 +104,7 @@
     <div class="notice hidden" id="errBox"></div>
 
     <div class="stack">
-      <button class="primary" id="sendBtn" disabled>Photos upload karein</button>
+      <button class="primary" id="sendBtn" disabled>Upload Photos</button>
     </div>
   </section>
 
@@ -282,8 +282,8 @@
       if (!out.ok) throw new Error(out.error || "Upload fail");
       showDone(out.code);
     } catch (e) {
-      showError("Upload nahi hua. Internet check karke dobara 'Photos upload karein' dabayein. (" + e.message + ")");
-      sendBtn.textContent = "Photos upload karein";
+      showError("Upload nahi hua. Internet check karke dobara 'Upload Photos' dabayein. (" + e.message + ")");
+      sendBtn.textContent = "Upload Photos";
     } finally {
       uploading = false;
       refreshState();
