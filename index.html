@@ -258,7 +258,7 @@
       img.alt = "Photo " + (i + 1);
       const del = document.createElement("button");
       del.className = "secondary";
-      del.textContent = "Hatayein";
+      del.textContent = "Remove";
       del.onclick = () => { if (uploading) return; photos.splice(i, 1); renderThumbs(); refreshState(); };
       box.appendChild(img); box.appendChild(del);
       thumbs.appendChild(box);
