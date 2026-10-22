@@ -91,7 +91,7 @@
 
     <div class="viewfinder">
       <video id="video" playsinline muted autoplay></video>
-      <div class="vf-msg" id="vfMsg">Camera aur location ki permission "Allow" karein.</div>
+      <div class="vf-msg" id="vfMsg">Grant camera and location permissions.</div>
     </div>
 
     <div class="stack">
@@ -110,12 +110,12 @@
 
   <section id="finished" class="hidden">
     <div class="done">
-      <div><strong>Photos upload ho gayi</strong></div>
-      <div class="small">Ye code Google Form ke "Photo Code" box me paste karein.</div>
+      <div><strong>Photos uploaded</strong></div>
+      <div class="small">Paste this code into the "Photo Code" box in the Google Form.</div>
       <div class="code" id="codeText"></div>
-      <button class="primary" id="copyBtn">Code Copy Code</button>
+      <button class="primary" id="copyBtn">Copy Code</button>
       <p class="small" id="copyNote"></p>
-      <p class="small">Form submit hone tak ye page band na karein.</p>
+      <p class="small">Do not close this page until the form has been submitted.</p>
     </div>
   </section>
 </main>
@@ -161,7 +161,7 @@
 
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      vfMsg.textContent = "Ye browser camera support nahi karta. Chrome ya Safari me page kholein.";
+      vfMsg.textContent = "This browser does not support the camera. Open the page in Chrome or Safari.";
       chipCam.classList.add("bad");
       return;
     }
@@ -174,7 +174,7 @@
       chipCam.classList.add("ok");
     } catch (e) {
       chipCam.classList.add("bad");
-      vfMsg.textContent = "Camera permission nahi mili. Browser settings me Camera ko Allow karke page reload karein.";
+      vfMsg.textContent = "Camera permission not granted. Allow camera access in your browser settings and reload the page.";
     }
     refreshState();
   }
@@ -182,7 +182,7 @@
   function startLocation() {
     if (!navigator.geolocation) {
       chipLoc.classList.add("bad");
-      locText.textContent = "Location nahi";
+      locText.textContent = "No location";
       return;
     }
     navigator.geolocation.watchPosition(
@@ -196,7 +196,7 @@
       err => {
         chipLoc.classList.add("bad");
         locText.textContent = "Location band";
-        if (!pos) vfMsg.textContent = "Location permission nahi mili. Browser settings me Location ko Allow karke page reload karein.";
+        if (!pos) vfMsg.textContent = "Location permission not granted. Please allow location access in your browser settings and reload the page.";
         refreshState();
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
@@ -215,7 +215,7 @@
     clearError();
     if (!stream || !pos || photos.length >= MAX_PHOTOS) return;
     const vw = video.videoWidth, vh = video.videoHeight;
-    if (!vw || !vh) { showError("Camera abhi ready nahi hai. Ek second ruk kar dobara try karein."); return; }
+    if (!vw || !vh) { showError("The camera is not ready yet. Wait a second and try again."); return; }
 
     const scale = Math.min(1, MAX_SIDE / Math.max(vw, vh));
     const w = Math.round(vw * scale), h = Math.round(vh * scale);
@@ -269,7 +269,7 @@
     if (uploading || photos.length < 1) return;
     clearError();
     uploading = true;
-    sendBtn.textContent = "Upload ho raha hai...";
+    sendBtn.textContent = "Uploading...";
     refreshState();
     try {
       const payload = {
@@ -282,7 +282,7 @@
       if (!out.ok) throw new Error(out.error || "Upload fail");
       showDone(out.code);
     } catch (e) {
-      showError("Upload nahi hua. Internet check karke dobara 'Upload Photos' dabayein. (" + e.message + ")");
+      showError("Upload failed. Please check your internet connection and tap 'Upload Photos' again. (" + e.message + ")");
       sendBtn.textContent = "Upload Photos";
     } finally {
       uploading = false;
@@ -299,9 +299,9 @@
       const note = document.getElementById("copyNote");
       try {
         await navigator.clipboard.writeText(code);
-        note.textContent = "Code copy ho gaya.";
+        note.textContent = "Code copied.";
       } catch (e) {
-        note.textContent = "Copy nahi hua. Code ko dabakar rakhein aur manually copy karein.";
+        note.textContent = "It didn't copy. Long-press the code and copy it manually.";
       }
     };
   }
